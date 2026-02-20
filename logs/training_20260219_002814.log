@@ -1,0 +1,45 @@
+Training log started at 2026-02-19T00:28:14.416291
+STARTING COMPREHENSIVE MODEL TRAINING PIPELINE
+✅ Training R²: 0.9912
+✅ Validation R²: 0.9934
+⏱️  Training time: 0.23s
+
+============================================================
+🔷 Training Support Vector Regressor (SVR)
+============================================================
+🔍 Performing Grid Search...
+✅ Best parameters: {'C': 10.0, 'epsilon': 0.1, 'gamma': 'scale', 'kernel': 'linear'}
+✅ Training R²: 0.9872
+✅ Validation R²: 0.9881
+✅ Validation RMSE: 932.1314
+⏱️  Training time: 11.84s
+✅ Best params: {'max_depth': 10, 'min_samples_leaf': 2, 'min_samples_split': 5, 'n_estimators': 150}
+✅ Val R²: 0.9955 | Val RMSE: 571.2358 | Time: 20.55s
+✅ Best params: {'colsample_bytree': 0.8, 'learning_rate': 0.1, 'max_depth': 6, 'n_estimators': 150, 'subsample': 0.9}
+✅ Val R²: 0.9933 | Val RMSE: 697.3526 | Time: 22.55s
+
+⚠️ LSTM skipped: TensorFlow not installed. Uncomment in requirements.txt to enable.
+
+============================================================
+📊 MODEL COMPARISON
+============================================================
+            Model  Train R²   Val R²   Val RMSE    Val MAE  Train Time (s)
+    Random Forest  0.997885 0.995535 571.235762 284.245606           20.55
+Linear Regression  0.991237 0.993419 693.528007 430.241176            0.23
+          XGBoost  0.999188 0.993346 697.352574 382.386196           22.55
+              SVR  0.987218 0.988111 932.131355 575.943145           11.84
+
+🏆 Best Model: Random Forest
+   Validation R²: 0.9955
+
+============================================================
+🎯 FINAL TEST SET EVALUATION
+============================================================
+Model: Random Forest
+Test R²: 0.9955
+Test RMSE: 588.9946
+Test MAE: 291.0216
+Test MAPE: 3.23%
+📈 Saved outputs/charts/model_comparison.png
+📈 Saved outputs/charts/prediction_vs_actual.png
+📄 Saved outputs/charts\model_comparison_table.csv

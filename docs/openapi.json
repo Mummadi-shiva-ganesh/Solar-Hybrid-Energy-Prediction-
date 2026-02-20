@@ -1,0 +1,306 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Solar-Battery Prediction API",
+    "description": "REST API for solar AC power prediction. Submit weather/irradiation features and receive predicted power output (kW).",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Mini Project - CSE (AI & ML)"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Local development"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Web dashboard",
+        "description": "Serves the main HTML dashboard (Solar Energy Prediction System).",
+        "responses": {
+          "200": {
+            "description": "HTML page"
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Returns API and model status.",
+        "responses": {
+          "200": {
+            "description": "Status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "healthy" },
+                    "model_loaded": { "type": "boolean" },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "version": { "type": "string", "example": "1.0.0" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/model/info": {
+      "get": {
+        "summary": "Model information",
+        "description": "Returns model metadata, performance metrics, and feature names.",
+        "responses": {
+          "200": {
+            "description": "Model info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "model_name": { "type": "string" },
+                    "model_type": { "type": "string" },
+                    "version": { "type": "string" },
+                    "trained_date": { "type": "string" },
+                    "performance": {
+                      "type": "object",
+                      "properties": {
+                        "val_r2": { "type": "number" },
+                        "val_rmse": { "type": "number" },
+                        "val_mae": { "type": "number" }
+                      }
+                    },
+                    "hyperparameters": { "type": "object" },
+                    "feature_names": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Model not loaded",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/predict": {
+      "post": {
+        "summary": "Single prediction",
+        "description": "Predict AC power (kW) for one set of features.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [ "features" ],
+                "properties": {
+                  "features": {
+                    "type": "object",
+                    "required": [ "AMBIENT_TEMPERATURE", "MODULE_TEMPERATURE", "IRRADIATION" ],
+                    "properties": {
+                      "AMBIENT_TEMPERATURE": { "type": "number", "description": "Ambient temperature (°C)", "example": 25.5 },
+                      "MODULE_TEMPERATURE": { "type": "number", "description": "Module temperature (°C)", "example": 35.2 },
+                      "IRRADIATION": { "type": "number", "description": "Irradiation (e.g. kW/m² or W/m²)", "example": 0.8 }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Prediction result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "prediction": { "type": "number", "description": "Predicted AC power (kW)" },
+                    "confidence": { "type": "number" },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "model_name": { "type": "string" },
+                    "status": { "type": "string", "example": "success" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request (missing or malformed body)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "503": {
+            "description": "Model not loaded",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error during prediction",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/predict/batch": {
+      "post": {
+        "summary": "Batch predictions",
+        "description": "Predict AC power for multiple feature rows.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [ "data" ],
+                "properties": {
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "AMBIENT_TEMPERATURE": { "type": "number" },
+                        "MODULE_TEMPERATURE": { "type": "number" },
+                        "IRRADIATION": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch prediction result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "predictions": {
+                      "type": "array",
+                      "items": { "type": "number" }
+                    },
+                    "count": { "type": "integer" },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "status": { "type": "string", "example": "success" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "503": { "description": "Model not loaded" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/api/metrics": {
+      "get": {
+        "summary": "Performance metrics",
+        "description": "Returns model performance (e.g. R², RMSE) from metadata.",
+        "responses": {
+          "200": {
+            "description": "Metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "performance": { "type": "object" },
+                    "model_name": { "type": "string" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Metadata not available",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/features": {
+      "get": {
+        "summary": "Feature list",
+        "description": "Returns required input feature names for prediction.",
+        "responses": {
+          "200": {
+            "description": "Feature list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "features": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    },
+                    "count": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Metadata not available",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "status": { "type": "string", "example": "error" }
+        }
+      }
+    }
+  }
+}

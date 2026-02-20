@@ -1,0 +1,97 @@
+{
+  "info": {
+    "name": "Solar-Battery Prediction API",
+    "description": "Collection for the Solar-Battery Hybrid Prediction REST API. Base URL: http://localhost:5000",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Info",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/health",
+            "description": "Returns API status and whether the model is loaded."
+          }
+        },
+        {
+          "name": "Model Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/model/info",
+            "description": "Returns model name, type, performance (R², RMSE), hyperparameters, and feature names."
+          }
+        },
+        {
+          "name": "Get Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/metrics",
+            "description": "Returns model performance metrics from metadata."
+          }
+        },
+        {
+          "name": "Get Features",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/features",
+            "description": "Returns list of required input feature names for /api/predict."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Predictions",
+      "item": [
+        {
+          "name": "Single Prediction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"features\": {\n    \"AMBIENT_TEMPERATURE\": 25.5,\n    \"MODULE_TEMPERATURE\": 35.2,\n    \"IRRADIATION\": 0.8\n  }\n}"
+            },
+            "url": "{{baseUrl}}/api/predict",
+            "description": "Predict AC power (kW) for one set of weather/irradiation features."
+          }
+        },
+        {
+          "name": "Batch Prediction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": [\n    {\n      \"AMBIENT_TEMPERATURE\": 25.5,\n      \"MODULE_TEMPERATURE\": 35.2,\n      \"IRRADIATION\": 0.8\n    },\n    {\n      \"AMBIENT_TEMPERATURE\": 28.0,\n      \"MODULE_TEMPERATURE\": 38.0,\n      \"IRRADIATION\": 0.95\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/predict/batch",
+            "description": "Predict AC power for multiple feature rows. Returns array of predictions."
+          }
+        }
+      ]
+    }
+  ]
+}

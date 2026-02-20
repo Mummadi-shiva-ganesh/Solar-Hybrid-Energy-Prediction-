@@ -20,6 +20,20 @@ model = None
 scaler = None
 metadata = None
 
+# Display scaling: dataset is large solar farm (0 ~ 30k kW). Scale to college mini-project range:
+# 50 - 800 kWh (hourly) as recommended for mini projects.
+REFERENCE_MAX_KW = 30000.0   # approx max from 30kW plant aggregated data
+DISPLAY_MAX_KWH = 800.0      # max display value (hourly kWh)
+DISPLAY_MIN_KWH = 50.0      # min display value for non-zero predictions
+
+
+def scale_prediction_for_display(raw_prediction):
+    """Scale raw model output (large plant kW) to 50-800 kWh range for display."""
+    if raw_prediction <= 0:
+        return 0.0
+    scaled = (raw_prediction / REFERENCE_MAX_KW) * DISPLAY_MAX_KWH
+    return round(max(DISPLAY_MIN_KWH, min(DISPLAY_MAX_KWH, scaled)), 2)
+
 def load_model_artifacts():
     """Load model, scaler, and metadata on startup"""
     global model, scaler, metadata
@@ -38,20 +52,42 @@ def load_model_artifacts():
                 'trained_date': 'Unknown'
             }
         
-        print("✅ Model artifacts loaded successfully")
+        print("Model artifacts loaded successfully")
         return True
     except Exception as e:
-        print(f"⚠️  Error loading model: {e}")
+        print(f"Error loading model: {e}")
         return False
 
 # Load models on startup
 load_model_artifacts()
 
 
+def _openapi_path():
+    """Path to OpenAPI spec (relative to this file)."""
+    return os.path.join(os.path.dirname(__file__), '..', 'docs', 'openapi.json')
+
+
+@app.route('/api/spec', methods=['GET'])
+def openapi_spec():
+    """Serve OpenAPI 3.0 spec for Swagger UI / Postman."""
+    path = _openapi_path()
+    if not os.path.exists(path):
+        return jsonify({'error': 'OpenAPI spec not found'}), 404
+    with open(path, 'r', encoding='utf-8') as f:
+        spec = json.load(f)
+    return jsonify(spec), 200
+
+
 @app.route('/')
 def index():
     """Serve the main web page"""
     return send_from_directory(app.static_folder, 'index.html')
+
+
+@app.route('/docs')
+def swagger_ui():
+    """Serve Swagger UI for API documentation"""
+    return send_from_directory(app.static_folder, 'swagger.html')
 
 
 @app.route('/api/health', methods=['GET'])
@@ -156,14 +192,15 @@ def predict():
         # Scale features
         input_scaled = scaler.transform(input_df)
         
-        # Make prediction
-        prediction = model.predict(input_scaled)[0]
+        # Make prediction (raw model output is in large-plant kW scale)
+        raw_prediction = model.predict(input_scaled)[0]
+        prediction = scale_prediction_for_display(float(raw_prediction))
         
         # Calculate confidence (simplified - based on model type)
         confidence = 0.85 + (np.random.random() * 0.10)  # Placeholder confidence
         
         response = {
-            'prediction': float(prediction),
+            'prediction': prediction,
             'confidence': float(confidence),
             'timestamp': datetime.now().isoformat(),
             'model_name': metadata.get('model_name', 'Unknown'),
@@ -229,10 +266,11 @@ def batch_predict():
         
         # Scale and predict
         input_scaled = scaler.transform(input_df)
-        predictions = model.predict(input_scaled)
+        raw_predictions = model.predict(input_scaled)
+        predictions = [scale_prediction_for_display(float(p)) for p in raw_predictions]
         
         response = {
-            'predictions': predictions.tolist(),
+            'predictions': predictions,
             'count': len(predictions),
             'timestamp': datetime.now().isoformat(),
             'status': 'success'
@@ -282,9 +320,9 @@ def get_features():
 
 if __name__ == '__main__':
     print("\n" + "="*60)
-    print("🚀 Starting Flask API Server")
+    print("Starting Flask API Server")
     print("="*60)
-    print("📡 API Endpoints:")
+    print("API Endpoints:")
     print("   GET  /                    - Web interface")
     print("   GET  /api/health          - Health check")
     print("   GET  /api/model/info      - Model information")
@@ -292,8 +330,10 @@ if __name__ == '__main__':
     print("   POST /api/predict/batch   - Batch predictions")
     print("   GET  /api/metrics         - Performance metrics")
     print("   GET  /api/features        - Feature list")
+    print("   GET  /api/spec            - OpenAPI spec (Swagger)")
+    print("   GET  /docs               - Swagger UI")
     print("="*60)
-    print("🌐 Server running at: http://localhost:5000")
+    print("Server running at: http://localhost:5000")
     print("="*60 + "\n")
     
     app.run(debug=True, host='0.0.0.0', port=5000)

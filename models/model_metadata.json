@@ -1,0 +1,21 @@
+{
+  "model_name": "Random Forest",
+  "model_type": "RandomForestRegressor",
+  "trained_date": "2026-02-19T00:29:11.082922",
+  "feature_names": [
+    "AMBIENT_TEMPERATURE",
+    "MODULE_TEMPERATURE",
+    "IRRADIATION"
+  ],
+  "performance": {
+    "val_r2": 0.9955350411078254,
+    "val_rmse": 571.2357617078931,
+    "val_mae": 284.24560649221775
+  },
+  "hyperparameters": {
+    "max_depth": 10,
+    "min_samples_leaf": 2,
+    "min_samples_split": 5,
+    "n_estimators": 150
+  }
+}

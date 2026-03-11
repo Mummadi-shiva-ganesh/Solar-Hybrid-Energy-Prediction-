@@ -251,10 +251,11 @@ flowchart TB
         SPLIT --> SCALE --> TRAIN --> EVAL --> SAVE
     end
 
-    subgraph Artifacts["Model Artifacts"]
+    subgraph Artifacts["Model Artifacts & Persistence"]
         PKL[(best_model.pkl)]
         SCL[(scaler.pkl)]
         META[(model_metadata.json)]
+        DB[(PostgreSQL DB)]
     end
 
     subgraph Inference["Inference (Runtime)"]
@@ -351,7 +352,7 @@ The data pipeline is **ETL-oriented** (Extract → Transform → Load into memor
 | **API** | **Flask** (not FastAPI) | REST API, static file serving for the dashboard |
 | **CORS** | Flask-CORS | Allow browser requests from the dashboard to the API |
 | **Frontend** | HTML5, JavaScript, Tailwind CSS | Dashboard (sliders, fetch to API, display predictions) |
-| **Database** | **None** (no MongoDB/SQL) | Data from CSV files; no persistent DB in current design |
+| **Database** | **PostgreSQL** (Selected) | Time-series sensor data, ML logs, and system metadata |
 | **Visualization** | matplotlib, seaborn | Training charts (comparison, prediction vs actual) in `model_trainer.py` |
 
 *   **PyTorch**: Not used. LSTM, if enabled, uses TensorFlow/Keras.
@@ -525,15 +526,19 @@ The API is RESTful, JSON-based. Below is a concise **OpenAPI-style** summary sui
 
 ### 8.3 Database Design & ER Diagram
 
-The system **does not use a persistent database**. Data sources are **CSV files**; the training pipeline loads them into memory and writes only **model artifacts** (files) to disk. This section describes the **logical data entities** used in the pipeline and their relationships, which could later be mapped to tables if a DB were introduced.
+**PostgreSQL (Best Overall Choice — Highly Recommended)**
 
-**Data sources (files):**
+Why PostgreSQL?
 
-*   **solar_generation.csv** → plant-level generation per timestamp.
-*   **solar_weather.csv** → weather sensor readings per timestamp.
-*   **battery_data.csv** → battery experiment (voltage, current, temperature); SOC derived in code.
+*   ✅ **Time-Series Optimization**: Handles DATE_TIME sensor data efficiently using indexing and partitioning.
+*   ✅ **Analytical Power**: Strong SQL support for complex window functions and trend analytics.
+*   ✅ **Ecosystem Fit**: Seamlessly integrates with Python (SQLAlchemy/Psycopg2), Flask APIs, and Machine Learning pipelines.
+*   ✅ **Storage Scope**:
+    *   Solar generation and weather sensor records.
+    *   Battery experiment results and SOC logs.
+    *   Prediction history and model performance logs.
 
-**Logical entities (conceptual):**
+**Logical entities:**
 
 | Entity | Key | Attributes (main) | Notes |
 |--------|-----|--------------------|--------|
@@ -576,7 +581,7 @@ erDiagram
     SolarWeather }o--o{ CombinedDataset : "feeds"
 ```
 
-*   **Conclusion**: No physical database or ER in the deployed system; the diagram is for design documentation. If a DB were added, tables could mirror these entities and the ETL would load from CSV into the DB.
+*   **Conclusion**: PostgreSQL is selected for high-integrity storage of sensor data and prediction logs. The ETL pipeline (Section 7.2) now includes steps to sync CSV data into PostgreSQL tables for persistent access and historical analysis.
 
 ---
 

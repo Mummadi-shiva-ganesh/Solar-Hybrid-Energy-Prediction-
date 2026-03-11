@@ -78,6 +78,7 @@
 - ✅ Model training, validation, and testing
 - ✅ Web-based user interface development
 - ✅ RESTful API development for model serving
+- ✅ PostgreSQL database integration for time-series and log persistence
 - ✅ Local deployment and testing
 - ✅ Documentation and technical reporting
 

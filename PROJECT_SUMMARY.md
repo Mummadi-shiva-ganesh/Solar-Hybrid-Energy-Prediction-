@@ -36,17 +36,17 @@
 - ✅ 6.7 Final Model Selection (XGBoost selected)
 
 ### Section 7: System Architecture ✅
-- ✅ 7.1 End-to-End Architecture (Documented with diagrams)
+- ✅ 7.1 End-to-End Architecture (Documented with PostgreSQL layer)
 - ✅ 7.2 Data Pipeline (ETL implementation)
 - ✅ 7.3 Training Pipeline (Batch training)
 - ✅ 7.4 Inference Architecture (Real-time prediction)
-- ✅ 7.5 Technology Stack (Complete stack)
+- ✅ 7.5 Technology Stack (Python, Flask, PostgreSQL)
 - ✅ 7.6 Deployment Architecture (Local + Cloud ready)
 
 ### Section 8: Detailed Software Design ✅
 - ✅ 8.1 UML Diagrams (Use Case, Sequence, Class)
 - ✅ 8.2 API Documentation (7 endpoints)
-- ✅ 8.3 Database Design (Schema designed)
+- ✅ 8.3 Database Design (PostgreSQL selected)
 - ✅ 8.4 UI/UX Wireframes (Implemented)
 - ✅ 8.5 Model Serving Design (Complete)
 

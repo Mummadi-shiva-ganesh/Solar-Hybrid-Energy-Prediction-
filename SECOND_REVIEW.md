@@ -285,21 +285,20 @@ final_model = xgb.XGBRegressor(
                          │ HTTP Requests
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                      API GATEWAY                                │
-│                   (Flask/FastAPI)                               │
+│                      API GATEWAY (Flask)                        │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
 │  │ /predict     │  │ /train       │  │ /metrics     │         │
 │  └──────────────┘  └──────────────┘  └──────────────┘         │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-         ┌───────────────┼───────────────┐
-         ▼               ▼               ▼
-┌────────────────┐ ┌──────────┐ ┌────────────────┐
-│ Preprocessing  │ │  Model   │ │   Database     │
-│    Module      │ │ Serving  │ │   (Optional)   │
-└────────────────┘ └──────────┘ └────────────────┘
-         │               │               │
-         └───────────────┼───────────────┘
+└────────────────────────┬─────────┬──────────────────────────────┘
+                         │         │
+          ┌──────────────┘         └──────────────┐
+          ▼                                       ▼
+┌────────────────┐                 ┌────────────────┐
+│  Preprocessing │                 │   PostgreSQL   │
+│    Module      │                 │   Database     │
+└────────────────┘                 └────────────────┘
+          │                                 ▲
+          └──────────────┬──────────────────┘
                          ▼
                 ┌─────────────────┐
                 │  ML Model       │
@@ -516,9 +515,9 @@ prediction = model.predict(preprocessed_data)
 - **Bootstrap/Tailwind CSS** - Styling
 
 ##### **Data Storage:**
-- **CSV Files** - Dataset storage
-- **SQLite** (Optional) - Logging/metadata
-- **MongoDB** (Future) - Scalable storage
+- **PostgreSQL (Recommended)** - Time-series sensor data, ML logs, and system metadata
+- **CSV Files** - Initial dataset storage and batch ingest
+- **joblib** - Model artifact persistence
 
 ##### **Development Tools:**
 - **Jupyter Notebook** - Experimentation
@@ -761,9 +760,19 @@ Response: 200 OK
 ---
 
 ### 8.3 Database Design & ER Diagram
-**(Optional for this project)**
 
-#### **Database Schema:**
+**PostgreSQL (Best Overall Choice — Highly Recommended)**
+
+Why PostgreSQL?
+- ✅ **Time-series Optimization**: Handles sensor data (DATE_TIME) with optimized indexing.
+- ✅ **Powerful Analytics**: Strong SQL support for battery experiment analysis and prediction logs.
+- ✅ **Seamless Integration**: Works perfectly with Python/Flask/ML pipelines.
+- ✅ **Comprehensive Storage**:
+    - Solar generation and weather datasets.
+    - Battery discharge experiments and SOC derivation logs.
+    - Historical prediction logs for performance monitoring.
+
+#### **PostgreSQL Schema:**
 
 ##### **predictions Table**
 ```sql

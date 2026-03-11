@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+logs/
+.vscode/
+.gemini/
+.antigravity/
+debug_prediction.py
+node_modules/
+dist/
+build/
+.env
+venv/
+.pytest_cache/

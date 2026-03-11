@@ -1,0 +1,212 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Solar Energy Prediction — GitHub Actions CI/CD
+# Section 10.3: CI/CD for ML (Automated Testing and Deployment)
+#
+# Pipeline stages:
+#  1. lint     — code style check
+#  2. test     — ML unit tests + API integration tests
+#  3. monitor  — model quality gate (R² threshold)
+#  4. build    — docker image build verification
+#  5. deploy   — push to cloud (GitHub Packages / cloud provider)
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Solar Yield MLOps CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run monitoring check every Monday 00:00 UTC
+    - cron: '0 0 * * 1'
+
+env:
+  PYTHON_VERSION: "3.9"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/solar-yield-api
+
+jobs:
+
+  # ── Stage 1: Lint ─────────────────────────────────────────────────────────
+  lint:
+    name: 🔍 Code Style Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install linting tools
+        run: pip install flake8
+
+      - name: Run flake8 (max line length 120, ignore E501)
+        run: |
+          flake8 src/ \
+            --max-line-length=120 \
+            --exclude=src/__pycache__,src/test_*.py \
+            --ignore=E501,W503 \
+            --count --statistics
+        continue-on-error: true   # Non-blocking for this project
+
+  # ── Stage 2: ML Component Tests ───────────────────────────────────────────
+  test-ml:
+    name: 🧪 ML Component Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-flask
+
+      - name: Run ML unit tests
+        run: |
+          cd $GITHUB_WORKSPACE
+          pytest src/test_ml_components.py -v \
+            --tb=short \
+            --junitxml=reports/ml_test_results.xml
+        env:
+          PYTHONDONTWRITEBYTECODE: 1
+
+      - name: Upload ML test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ml-test-results
+          path: reports/ml_test_results.xml
+
+  # ── Stage 3: API Integration Tests ───────────────────────────────────────
+  test-api:
+    name: 🔌 API Integration Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-flask
+
+      - name: Run API integration tests
+        run: |
+          cd $GITHUB_WORKSPACE
+          pytest src/test_api.py -v \
+            --tb=short \
+            --junitxml=reports/api_test_results.xml
+
+      - name: Upload API test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-test-results
+          path: reports/api_test_results.xml
+
+  # ── Stage 4: Model Quality Gate ───────────────────────────────────────────
+  model-quality-gate:
+    name: 📊 Model Quality Gate (R² ≥ 0.90)
+    runs-on: ubuntu-latest
+    needs: [test-ml, test-api]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run monitoring quality gate
+        run: |
+          cd $GITHUB_WORKSPACE
+          python -c "
+          import json, sys
+          with open('models/model_metadata.json') as f:
+              meta = json.load(f)
+          r2 = meta['performance']['val_r2']
+          print(f'Current model R²: {r2:.4f}')
+          if r2 < 0.90:
+              print('FAIL: R² below threshold 0.90 — pipeline blocked!')
+              sys.exit(1)
+          print('PASS: Model quality gate passed.')
+          "
+
+  # ── Stage 5: Docker Build Verification ───────────────────────────────────
+  build:
+    name: 🐳 Docker Build
+    runs-on: ubuntu-latest
+    needs: model-quality-gate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t solar-yield-api:${{ github.sha }} .
+
+      - name: Smoke test container
+        run: |
+          docker run -d -p 5000:5000 --name test-api solar-yield-api:${{ github.sha }}
+          sleep 10
+          curl -f http://localhost:5000/api/health
+          docker stop test-api
+
+  # ── Stage 6: Deploy (main branch only) ────────────────────────────────────
+  deploy:
+    name: 🚀 Deploy
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Deploy to cloud (customize for your platform)
+        run: |
+          echo "=== Deployment Options ==="
+          echo ""
+          echo "AWS Elastic Beanstalk:"
+          echo "  eb deploy"
+          echo ""
+          echo "Azure Container Apps:"
+          echo "  az containerapp update --name solar-api --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          echo ""
+          echo "GCP Cloud Run:"
+          echo "  gcloud run deploy solar-yield-api --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} --region us-central1"
+          echo ""
+          echo "Render / Heroku: Connected via GitHub → auto-deploy on push"

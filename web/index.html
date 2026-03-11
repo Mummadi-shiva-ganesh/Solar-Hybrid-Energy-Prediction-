@@ -75,8 +75,20 @@
         .small-caps { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
         .card-dark .small-caps { color: rgba(255,255,255,0.6); }
         .perf-block { margin-bottom: 20px; }
-        .solar-visual { height: 100px; background: linear-gradient(180deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.05)); border-radius: 12px; margin: 20px 0; display: flex; align-items: center; justify-content: center; }
-        .solar-visual svg { width: 80px; height: 60px; opacity: 0.9; }
+        .solar-visual { height: 140px; background: linear-gradient(180deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.03)); border-radius: 12px; margin: 20px 0; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+        .solar-visual::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(234, 179, 8, 0.1) 0%, transparent 70%); animation: pulse 3s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } }
+        .solar-panel-grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 200px; }
+        .solar-cell { background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(16, 185, 129, 0.4); border-radius: 8px; height: 35px; position: relative; overflow: hidden; transition: all 0.3s ease; }
+        .solar-cell::after { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(234, 179, 8, 0.4), transparent); animation: shine 2s infinite; }
+        .solar-cell:nth-child(1)::after { animation-delay: 0s; }
+        .solar-cell:nth-child(2)::after { animation-delay: 0.3s; }
+        .solar-cell:nth-child(3)::after { animation-delay: 0.6s; }
+        .solar-cell:nth-child(4)::after { animation-delay: 0.9s; }
+        .solar-cell:nth-child(5)::after { animation-delay: 1.2s; }
+        .solar-cell:nth-child(6)::after { animation-delay: 1.5s; }
+        @keyframes shine { 0% { left: -100%; } 100% { left: 100%; } }
+        .solar-cell.active { background: rgba(16, 185, 129, 0.3); border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
         .perf-footer { display: flex; gap: 24px; margin-top: 16px; }
         .perf-footer-item { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
         .perf-footer-item .icon { width: 20px; height: 20px; }
@@ -111,16 +123,6 @@
         <nav class="nav-section">
             <div class="nav-section-title">Dashboard</div>
             <a href="#" class="nav-link active"><span class="nav-dot"></span> Overview</a>
-            <a href="#" class="nav-link"><span class="nav-dot"></span> Analysis</a>
-            <a href="#" class="nav-link"><span class="nav-dot"></span> Energy Balance</a>
-            <a href="#" class="nav-link"><span class="nav-dot"></span> Report</a>
-            <a href="#" class="nav-link"><span class="nav-dot"></span> Service Message</a>
-        </nav>
-        <nav class="nav-section">
-            <div class="nav-section-title">Settings</div>
-            <a href="#" class="nav-link"><span class="nav-dot"></span> My Site</a>
-            <a href="#" class="nav-link"><span class="nav-dot"></span> My Account</a>
-            <a href="#" class="nav-link"><span class="nav-dot"></span> Support</a>
         </nav>
         <div class="sidebar-footer">
             <div class="user-row">
@@ -161,28 +163,29 @@
                             <input type="number" id="module_temp" step="0.1" value="35.2">
                         </div>
                         <div class="input-group">
-                            <label>Irradiation</label>
-                            <input type="number" id="irradiation" step="0.01" value="0.8">
+                            <label>Irradiation (0-1.0)</label>
+                            <input type="number" id="irradiation" step="0.01" min="0" max="1.0" value="0.8">
                         </div>
                         <button type="button" class="btn-predict" id="predictBtn">Predict</button>
                     </div>
                     <div class="perf-block">
                         <div class="text-muted">Predicted Output</div>
                         <div class="big-value" id="predictedKwh">-- KWH</div>
-                        <div class="small-caps">Min 0.0 · Max 30.0</div>
+                        <div class="small-caps">Min 0.0 · Max 500.0</div>
                     </div>
                     <div class="perf-block">
                         <div class="text-muted">Power Usage (1h)</div>
                         <div class="big-value" id="powerUsage">6.8 KWH</div>
                     </div>
                     <div class="solar-visual">
-                        <svg viewBox="0 0 80 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="5" y="10" width="18" height="12" rx="2" fill="currentColor" opacity="0.9"/>
-                            <rect x="31" y="10" width="18" height="12" rx="2" fill="currentColor" opacity="0.7"/>
-                            <rect x="57" y="10" width="18" height="12" rx="2" fill="currentColor" opacity="0.9"/>
-                            <rect x="18" y="28" width="18" height="12" rx="2" fill="currentColor" opacity="0.6"/>
-                            <rect x="44" y="28" width="18" height="12" rx="2" fill="currentColor" opacity="0.8"/>
-                        </svg>
+                        <div class="solar-panel-grid" id="solarPanelGrid">
+                            <div class="solar-cell active"></div>
+                            <div class="solar-cell active"></div>
+                            <div class="solar-cell active"></div>
+                            <div class="solar-cell active"></div>
+                            <div class="solar-cell active"></div>
+                            <div class="solar-cell active"></div>
+                        </div>
                     </div>
                     <div class="perf-footer">
                         <div class="perf-footer-item">
@@ -193,34 +196,6 @@
                             <span class="icon">📊</span>
                             <span>Total yield <strong id="totalYield">-- kWh</strong></span>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Energy Generation (chart) -->
-                <div class="card chart-card">
-                    <div class="card-title">
-                        <span>Energy Generation</span>
-                        <select class="chart-select" id="genPeriod">
-                            <option>Today</option>
-                            <option>Week</option>
-                        </select>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chartGeneration"></canvas>
-                    </div>
-                </div>
-
-                <!-- Energy Production (monthly) -->
-                <div class="card chart-card">
-                    <div class="card-title">
-                        <span>Energy Production</span>
-                        <select class="chart-select" id="prodPeriod">
-                            <option>Monthly</option>
-                            <option>Yearly</option>
-                        </select>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="chartProduction"></canvas>
                     </div>
                 </div>
 
@@ -259,6 +234,19 @@
         document.getElementById('ambient_temp').addEventListener('input', updateTempDisplay);
         updateTempDisplay();
 
+        function updateSolarPanels(powerOutput) {
+            var cells = document.querySelectorAll('.solar-cell');
+            var activeCells = Math.min(6, Math.max(0, Math.ceil((powerOutput / 30) * 6)));
+            cells.forEach(function(cell, idx) {
+                if (idx < activeCells) {
+                    cell.classList.add('active');
+                } else {
+                    cell.classList.remove('active');
+                }
+            });
+        }
+        updateSolarPanels(15);
+
         async function loadModelInfo() {
             try {
                 var r = await fetch(API_BASE + '/model/info');
@@ -276,13 +264,23 @@
             var btn = this;
             btn.disabled = true;
             btn.textContent = '...';
-            var ambient = parseFloat(document.getElementById('ambient_temp').value) || 25.5;
-            var module = parseFloat(document.getElementById('module_temp').value) || 35.2;
-            var irr = parseFloat(document.getElementById('irradiation').value) || 0.8;
+            
+            // Fix: Check for empty string before defaulting to handle 0 correctly
+            var ambInput = document.getElementById('ambient_temp').value;
+            var modInput = document.getElementById('module_temp').value;
+            var irrInput = document.getElementById('irradiation').value;
+            
+            var ambient = ambInput !== "" ? parseFloat(ambInput) : 25.5;
+            var module  = modInput !== "" ? parseFloat(modInput) : 35.2;
+            var irr     = irrInput !== "" ? parseFloat(irrInput) : 0.8;
+            
             try {
                 var r = await fetch(API_BASE + '/predict', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-API-KEY': 'solar-yield-secret-2026'
+                    },
                     body: JSON.stringify({
                         features: {
                             AMBIENT_TEMPERATURE: ambient,
@@ -293,17 +291,31 @@
                 });
                 var data = await r.json();
                 if (data.status === 'success') {
+                    // ... (keep success logic)
                     var kw = data.prediction;
                     document.getElementById('predictedKwh').textContent = kw.toFixed(2) + ' KWH';
+                    document.getElementById('predictedKwh').style.color = '#fff'; // Reset color
+                    updateSolarPanels(kw);
+                    
                     recentPredictions.unshift({
-                        name: 'Prediction ' + (recentPredictions.length + 1),
+                        name: 'Prediction ' + (new Date().getSeconds() % 100),
                         value: kw.toFixed(2) + ' kWh',
                         time: new Date().toLocaleTimeString()
                     });
+                    
+                    for(let i=0; i<recentPredictions.length; i++) {
+                        recentPredictions[i].name = 'Record ' + (recentPredictions.length - i);
+                    }
+
                     if (recentPredictions.length > 5) recentPredictions.pop();
                     renderPointsList();
                 } else {
-                    document.getElementById('predictedKwh').textContent = 'Error';
+                    // Display backend validation error
+                    document.getElementById('predictedKwh').textContent = 'Invalid Input';
+                    document.getElementById('predictedKwh').style.color = '#ef4444'; // Red
+                    
+                    // Optional: alert or Toast for more detail
+                    console.error("Validation Error:", data.error);
                 }
             } catch (e) {
                 document.getElementById('predictedKwh').textContent = 'Offline';
@@ -324,46 +336,6 @@
             }).join('');
         }
 
-        // Energy Generation chart (Today)
-        var ctxGen = document.getElementById('chartGeneration').getContext('2d');
-        new Chart(ctxGen, {
-            type: 'bar',
-            data: {
-                labels: ['9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM'],
-                datasets: [{ label: 'kWh', data: [10, 14, 18, 20, 16, 18], backgroundColor: '#10b981' }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, grid: { color: '#e2e8f0' } },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
-
-        // Energy Production chart (Monthly)
-        var ctxProd = document.getElementById('chartProduction').getContext('2d');
-        new Chart(ctxProd, {
-            type: 'bar',
-            data: {
-                labels: ['March', 'April', 'May', 'June', 'July', 'August'],
-                datasets: [
-                    { label: 'kWh', data: [80, 120, 140, 160, 150, 180], backgroundColor: '#10b981' },
-                    { label: 'Target', data: [100, 100, 100, 100, 100, 100], backgroundColor: '#eab308', borderRadius: 4 }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'top' } },
-                scales: {
-                    y: { beginAtZero: true, max: 200, grid: { color: '#e2e8f0' } },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
     </script>
 </body>
 </html>

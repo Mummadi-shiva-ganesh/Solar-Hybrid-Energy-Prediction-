@@ -15,24 +15,27 @@ import os
 app = Flask(__name__, static_folder='../web', static_url_path='')
 CORS(app)
 
+# Security: Simple API Key for authentication (In production, use environment variables)
+API_KEY = "solar-yield-secret-2026"
+
 # Global variables for model and scaler
 model = None
 scaler = None
 metadata = None
 
-# Display scaling: dataset is large solar farm (0 ~ 30k kW). Scale to college mini-project range:
-# 50 - 800 kWh (hourly) as recommended for mini projects.
+# Display scaling: dataset is large solar farm (0 ~ 30k kW). Scale to residential/mini-project range:
+# 0 - 500 kWh (hourly).
 REFERENCE_MAX_KW = 30000.0   # approx max from 30kW plant aggregated data
-DISPLAY_MAX_KWH = 800.0      # max display value (hourly kWh)
-DISPLAY_MIN_KWH = 50.0      # min display value for non-zero predictions
+DISPLAY_MAX_KWH = 500.0      # max display value (hourly kWh)
+DISPLAY_MIN_KWH = 0.0        # Allow zero predictions
 
 
-def scale_prediction_for_display(raw_prediction):
-    """Scale raw model output (large plant kW) to 50-800 kWh range for display."""
-    if raw_prediction <= 0:
+def scale_prediction_for_display(raw_prediction, irradiation=1.0):
+    """Scale raw model output (large plant kW) to 0-500 kWh range for display."""
+    if raw_prediction <= 0 or irradiation <= 0.001:
         return 0.0
     scaled = (raw_prediction / REFERENCE_MAX_KW) * DISPLAY_MAX_KWH
-    return round(max(DISPLAY_MIN_KWH, min(DISPLAY_MAX_KWH, scaled)), 2)
+    return round(min(DISPLAY_MAX_KWH, scaled), 2)
 
 def load_model_artifacts():
     """Load model, scaler, and metadata on startup"""
@@ -151,6 +154,10 @@ def predict():
         "model_name": "XGBoost"
     }
     """
+    # Security: Verify API Key
+    key = request.headers.get('X-API-KEY')
+    if key != API_KEY:
+        return jsonify({'error': 'Unauthorized: Invalid or missing API Key', 'status': 'error'}), 401
     if model is None or scaler is None:
         return jsonify({
             'error': 'Model not loaded',
@@ -168,6 +175,18 @@ def predict():
             }), 400
         
         features = data['features']
+        
+        # Strict physical validation: Reject impossible values
+        irr = features.get('IRRADIATION', 0)
+        if irr < 0 or irr > 1.0:
+             return jsonify({
+                 'error': f'Invalid Irradiation: {irr}. Must be between 0.0 and 1.0 kW/m².',
+                 'status': 'error'
+             }), 400
+        
+        # Apply physical clipping for remaining features
+        features['AMBIENT_TEMPERATURE'] = float(np.clip(features.get('AMBIENT_TEMPERATURE', 0), -20, 60))
+        features['MODULE_TEMPERATURE'] = float(np.clip(features.get('MODULE_TEMPERATURE', 0), -20, 100))
         
         # Get feature names from metadata
         feature_names = metadata.get('feature_names', [])
@@ -194,7 +213,7 @@ def predict():
         
         # Make prediction (raw model output is in large-plant kW scale)
         raw_prediction = model.predict(input_scaled)[0]
-        prediction = scale_prediction_for_display(float(raw_prediction))
+        prediction = scale_prediction_for_display(float(raw_prediction), irradiation=float(features.get('IRRADIATION', 0)))
         
         # Calculate confidence (simplified - based on model type)
         confidence = 0.85 + (np.random.random() * 0.10)  # Placeholder confidence
@@ -236,6 +255,10 @@ def batch_predict():
         "timestamp": "2026-02-07T12:00:00"
     }
     """
+    # Security: Verify API Key
+    key = request.headers.get('X-API-KEY')
+    if key != API_KEY:
+        return jsonify({'error': 'Unauthorized: Invalid or missing API Key', 'status': 'error'}), 401
     if model is None or scaler is None:
         return jsonify({
             'error': 'Model not loaded',
@@ -267,7 +290,11 @@ def batch_predict():
         # Scale and predict
         input_scaled = scaler.transform(input_df)
         raw_predictions = model.predict(input_scaled)
-        predictions = [scale_prediction_for_display(float(p)) for p in raw_predictions]
+        
+        predictions = []
+        for i, p in enumerate(raw_predictions):
+            row_irr = input_df.iloc[i].get('IRRADIATION', 1.0)
+            predictions.append(scale_prediction_for_display(float(p), irradiation=float(row_irr)))
         
         response = {
             'predictions': predictions,

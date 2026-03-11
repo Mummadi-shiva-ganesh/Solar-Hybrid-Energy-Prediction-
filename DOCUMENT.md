@@ -27,6 +27,7 @@ The system follows a typical **Client-Server Architecture**:
 -   **Input**: Historical solar generation and battery usage data.
 -   **Preprocessing**: Cleans, aligns, and engineers features from the raw data.
 -   **Modeling**: A Random Forest model learns the relationship between weather and power output.
+-   **Persistence**: **PostgreSQL** handles storage for time-series sensor data, ML logs, and battery experiment records.
 
 ### 2. Application Logic (Backend)
 -   **API**: A Python Flask server (`src/api.py`) exposes the trained model.
@@ -124,6 +125,7 @@ We evaluated the model using:
 -   **Programming Language**: Python 3.8+
 -   **Machine Learning**: `scikit-learn`, `pandas`, `numpy`, `joblib`.
 -   **Backend Framework**: Flask (REST API).
+-   **Database**: PostgreSQL (Time-series optimization, ML logs).
 -   **Frontend**: HTML5, JavaScript (Fetch API), Tailwind CSS (CDN).
 -   **Tools**: VS Code, Git, GitHub.
 

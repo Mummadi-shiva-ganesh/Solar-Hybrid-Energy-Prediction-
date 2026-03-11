@@ -1,74 +1,102 @@
 # ☀️🔋 Solar-Battery Hybrid Energy Predictor
 
-A generic ML-powered web application to predict solar power generation and battery usage for hybrid energy systems.
+A high-performance Machine Learning solution for forecasting solar power generation and simulating battery storage dynamics in real-time.
+
+---
+
+## 📖 Table of Contents
+1. [Project Overview](#-project-overview)
+2. [How the System Works](#-how-the-system-works)
+3. [Deep Dive: Machine Learning Logic](#-deep-dive-machine-learning-logic)
+4. [Technology Stack](#-technology-stack)
+5. [Database Strategy (PostgreSQL)](#-database-strategy-postgresql)
+6. [Installation & Setup](#-installation--setup)
+
+---
 
 ## 📌 Project Overview
-This tool helps users predict:
--   **Solar Power Output** based on environmental conditions (Irradiance, Temperature).
--   **Battery Status**: Charging time or time-to-empty based on home load.
--   **Net Power**: Visualizes real-time Grid Export (Charging) or Import (Draining).
+The **Solar-Battery Hybrid Energy Predictor** is designed to solve the intermittency problem of renewable energy. By analyzing environmental factors like sunlight intensity and temperature, the system provides accurate forecasts of energy production and helps users manage their battery storage effectively.
 
-The application uses a **Client-Server Architecture**:
--   **Backend**: Python (Flask) API serving a Machine Learning model (Random Forest).
--   **Frontend**: Modern HTML5 Dashboard styled with Tailwind CSS.
+### Key Capabilities:
+- **Energy Forecasting**: Predicts AC Power output (kW) using advanced ML models.
+- **Battery Simulation**: Calculates State of Charge (SOC) and time-to-empty/full based on home load.
+- **Real-Time Dashboard**: Visualizes the flow of energy between panels, batteries, and the grid.
 
 ---
 
-## 🚀 Installation Guide
+## 🏗️ How the System Works
+The system follows a **Client-Server / ETL-Inference** architecture:
 
-### Prerequisites
--   Python 3.8 or higher installed.
--   Git (to clone the repository).
+1. **Extraction (ETL)**: Raw sensor data from two different sources (Solar Farm & Battery Experiments) are ingested.
+2. **Transformation**: Data is merged, cleaned, and features like **State of Charge (SOC)** are derived using linear decay modeling.
+3. **Inference (API)**: A Flask server loads the trained models. When a user moves a slider on the dashboard, the API:
+   - Validates the input features.
+   - Scales the features using a fitted `StandardScaler`.
+   - Passes the vector to the **XGBoost/Random Forest** regressor.
+   - Scales the output to a mini-project-friendly scale (0-800 kWh).
+4. **User Interface**: The dynamic dashboard displays results instantly, showing whether the system is "Exporting" to the grid or "Draining" the battery.
 
-### 1. Clone the Repository
+---
+
+## 🧠 Deep Dive: Machine Learning Logic
+
+### 1. The Chosen Algorithm: XGBoost / Random Forest
+While the project includes a baseline **Linear Regression (OLS)** model (providing ~94% accuracy), we primarily use **Ensemble Learning** methods for production:
+
+- **Why ensemble?**: Unlike simple linear models, Random Forest and XGBoost use multiple decision trees to handle **non-linear relationships**. For example, solar panels actually lose efficiency when they get *too* hot—a pattern these models capture perfectly.
+- **Handling Zero-States**: The models naturally learn that when `Irradiance = 0` (Night-time), the power must be `0`, avoiding the "noise" or negative predictions simple models might produce.
+
+### 2. Feature Importance
+The system predicts power based on three primary signals:
+1. **Irradiation (>90% influence)**: The raw solar flux available.
+2. **Module Temperature**: The actual heat of the panel surface (impacts efficiency).
+3. **Ambient Temperature**: Surrounding site conditions.
+
+### 3. The Prediction Math
+The model calculates a "Plant Efficiency" based on input conditions:
+$$ \text{Predicted Output} = f(\text{Irradiation, Temp, Module\_Temp}) $$
+This raw output is then scaled for the user's specific system size (e.g., 5kW Home vs 30kW Farm).
+
+---
+
+## 🛠️ Technology Stack
+- **Backend**: Python (Flask, Flask-CORS)
+- **ML Engine**: Scikit-Learn, XGBoost, TensorFlow (Optional LSTM)
+- **Data Persistence**: **PostgreSQL** (Selected for Time-Series performance)
+- **Visualization**: Matplotlib, Seaborn (for training graphs)
+- **Frontend**: HTML5, Vanilla JavaScript, Tailwind CSS
+
+---
+
+## 🗄️ Database Strategy (PostgreSQL)
+We have selected **PostgreSQL** as the core database for this system because:
+- **Time-Series Ready**: It efficiently handles the `DATE_TIME` sensor data.
+- **Analyitcal Power**: It allows for complex SQL queries to track historical battery performance.
+- **Hybrid Storage**: It stores solar data, weather records, battery experiments, and **prediction logs** for future model retraining.
+
+---
+
+## 🚀 Installation & Setup
+
+### 1. Prerequisites
+- Python 3.9+
+- PostgreSQL (Recommended)
+- pip
+
+### 2. Quick Start
 ```bash
-git clone https://github.com/Mummadi-shiva-ganesh/proto.git
-cd proto
-```
-
-### 2. Install Dependencies
-Install the required Python libraries using pip:
-```bash
+# 1. Install Libraries
 pip install -r requirements.txt
-```
-*Note: This installs Flask, scikit-learn, pandas, flask-cors, etc.*
 
----
+# 2. Train the AI (Generates the best model)
+python src/model_trainer.py
 
-## ⚡ How to Run the App
-
-You need to run the Python Backend first, then open the Frontend.
-
-### Step 1: Start the Backend API
-Open your terminal/command prompt in the project folder and run:
-```bash
+# 3. Start the API Server
 python src/api.py
 ```
-> **Keep this terminal open!** You should see a message saying `Running on http://0.0.0.0:5000`. This functionality powers the AI predictions.
 
-### Step 2: Open the Dashboard
-1.  Locate the `index.html` file in the main project folder.
-2.  **Double-click** `index.html` to open it in your browser (Chrome, Edge, etc.).
+3. Open `index.html` in your browser to view the **Live Dashboard**.
 
 ---
 
-## 🎮 How to Use
-1.  **Environment Controls**: Adjust sliders for *Irradiation* and *Temperature* to simulate different weather conditions.
-2.  **System Config**: Set your *Solar System Size* (e.g., 5kW) and *Current Home Load* (e.g., 1.2kW).
-3.  **Real-Time Output**:
-    -   **Net Power Card**: Turns **Green** if you are exporting/charging, **Red** if draining.
-    -   **Battery Status**: Shows estimated **Time to Full** or **Time to Empty**.
-
-## 📁 Project Structure
--   `src/api.py` - Flask Server & API Logic.
--   `src/train_model.py` - Script used to train the ML model.
--   `models/` - Contains the trained `.pkl` model file.
--   `data/` - Dataset files (Solar & Battery).
--   `index.html` - Main Dashboard UI.
--   `script.js` - Frontend logic (talks to the API).
-
----
-
-## 🛠️ Troubleshooting
--   **"Error connecting to server"**: Make sure `src/api.py` is running in a terminal window.
--   **Wrong Predictions?**: Ensure the `models/solar_model.pkl` file exists. If not, run `python src/train_model.py` to regenerate it.
+*This project was developed for the III Year II Sem Industrial Oriented Mini Project at Sphoorthy Engineering College.*

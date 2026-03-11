@@ -5,6 +5,7 @@
 ### Prerequisites
 - Python 3.9 or higher
 - pip (Python package manager)
+- PostgreSQL (Recommended for persistent data storage)
 - Web browser (Chrome, Firefox, Edge, etc.)
 
 ---
@@ -160,8 +161,10 @@ mini project/
 │   ├── best_model.pkl
 │   ├── scaler.pkl
 │   └── model_metadata.json
-├── data/                       # Dataset files
+├── data/                       # Dataset files (CSV ingest to PostgreSQL)
 │   └── solar_data.csv
+├── docs/                       # API and Database documentation
+│   └── openapi.json
 ├── requirements.txt            # Dependencies
 ├── SECOND_REVIEW.md           # 2nd review documentation
 ├── ZEROTH_REVIEW.md           # 0th review documentation

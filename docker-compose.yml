@@ -1,0 +1,70 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Solar Energy Prediction — Docker Compose
+# Section 10.4 / 10.5: Containerization & Cloud Deployment
+#
+# Usage:
+#   docker-compose up --build        # Start everything
+#   docker-compose up -d             # Start in background
+#   docker-compose logs -f           # View live logs
+#   docker-compose down              # Stop all services
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Main Flask API ──────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: solar-yield-api
+    ports:
+      - "5000:5000"           # Host:Container — access at http://localhost:5000
+    environment:
+      - FLASK_ENV=production
+      - API_KEY=solar-yield-secret-2026   # Override in .env for production
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./models:/app/models  # Persist model artifacts across container restarts
+      - ./logs:/app/logs      # Persist monitoring logs on host
+      - ./web:/app/web        # Live frontend updates
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  # ── Model Monitor (runs once then exits) ────────────────────────────────────
+  monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: solar-yield-monitor
+    command: python src/monitor.py
+    volumes:
+      - ./models:/app/models
+      - ./logs:/app/logs
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: "no"            # Run-once monitoring job
+
+  # ── Retraining Job (on-demand) ───────────────────────────────────────────────
+  retrain:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: solar-yield-retrain
+    command: python src/retrain_pipeline.py
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+      - ./logs:/app/logs
+    profiles:
+      - retrain              # Only starts with: docker-compose --profile retrain up retrain
+    restart: "no"
+
+volumes:
+  models:
+  logs:

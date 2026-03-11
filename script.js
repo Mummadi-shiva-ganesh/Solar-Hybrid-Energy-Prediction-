@@ -1,4 +1,5 @@
 const API_URL = "http://localhost:5000/predict";
+const API_KEY = "solar-yield-secret-2026";
 
 // DOM Elements
 const sliders = {
@@ -65,7 +66,10 @@ async function updatePrediction() {
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-API-KEY': API_KEY
+            },
             body: JSON.stringify(payload)
         });
 

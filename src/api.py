@@ -175,7 +175,23 @@ def predict():
             }), 400
         
         features = data['features']
-        
+
+        # 1. Numeric Validation: Ensure all features are int or float
+        for k, v in features.items():
+            if not isinstance(v, (int, float)):
+                return jsonify({
+                    'error': f'Feature {k} must be numeric, got {type(v).__name__}',
+                    'status': 'error'
+                }), 400
+
+        # 2. Extreme Value Validation: Ensure absolute value <= 1,000,000
+        for k, v in features.items():
+            if abs(v) > 1_000_000:
+                return jsonify({
+                    'error': f'Feature {k} value {v} is unrealistically extreme.',
+                    'status': 'error'
+                }), 400
+
         # Strict physical validation: Reject impossible values
         irr = features.get('IRRADIATION', 0)
         if irr < 0 or irr > 1.0:

@@ -244,7 +244,10 @@ with main_col1:
                     st.error(f"Error: {data.get('error')}")
             except Exception as e:
                 st.error("API Offline. Using fallback mode.")
-                st.session_state.last_prediction = (irradiation * 400) + (ambient_temp * 0.5)
+                res_kw = (irradiation * 400) + (ambient_temp * 0.5)
+                st.session_state.last_prediction = res_kw
+                st.session_state.history.insert(0, {"time": datetime.now().strftime("%H:%M:%S"), "val": res_kw})
+                if len(st.session_state.history) > 10: st.session_state.history.pop()
 
         # Output Display
         last_val = st.session_state.last_prediction

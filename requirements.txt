@@ -18,3 +18,7 @@ seaborn>=0.12.0
 # Optional - Deep Learning (for LSTM)
 # tensorflow>=2.13.0
 # keras>=2.13.0
+
+# Frontend
+streamlit>=1.30.0
+requests>=2.31.0

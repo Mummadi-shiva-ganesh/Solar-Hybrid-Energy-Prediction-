@@ -44,14 +44,17 @@ ENV API_KEY=solar-yield-secret-2026
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# ── Expose port ───────────────────────────────────────────────────────────────
-EXPOSE 5000
+# ── Copy start script ────────────────────────────────────────────────────────
+COPY start.sh .
+RUN chmod +x start.sh
+
+# ── Expose ports ──────────────────────────────────────────────────────────────
+EXPOSE 5000 8501
 
 # ── Health check ──────────────────────────────────────────────────────────────
 # Docker will mark container as 'unhealthy' if /api/health stops responding
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:5000/api/health || exit 1
 
-# ── Run the API ───────────────────────────────────────────────────────────────
-# Use python directly (Flask dev + watchdog for hot-reload in container)
-CMD ["python", "src/api.py"]
+# ── Run the application ───────────────────────────────────────────────────────
+CMD ["./start.sh"]

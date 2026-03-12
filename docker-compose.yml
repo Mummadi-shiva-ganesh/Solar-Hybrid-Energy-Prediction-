@@ -18,7 +18,8 @@ services:
       dockerfile: Dockerfile
     container_name: solar-yield-api
     ports:
-      - "5000:5000"           # Host:Container — access at http://localhost:5000
+      - "5000:5000"           # Flask API
+      - "8501:8501"           # Streamlit Dashboard
     environment:
       - FLASK_ENV=production
       - API_KEY=solar-yield-secret-2026   # Override in .env for production
